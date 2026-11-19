@@ -18,8 +18,15 @@
     border: 1px solid var(--rule); border-radius: 2px; padding: 7px 8px;
   }
   .r-ctrl select:focus { outline: 2px solid var(--blue); outline-offset: 1px; }
-  .r-place { font-size: 13px; color: var(--ink-2); margin: 24px 0 0; }
-  .r-name { font: 700 22px/1.15 var(--serif); color: var(--title); margin: 2px 0 0; }
+  .r-name { font: 700 22px/1.15 var(--serif); color: var(--title); margin: 24px 0 0; }
+  .r-read { margin: 28px 0 0; border-top: 1px solid var(--rule); padding-top: 10px; }
+  .r-read summary { font: 600 13px var(--sans); color: var(--ink); cursor: pointer; list-style: none; display: flex; align-items: center; gap: 6px; }
+  .r-read summary::-webkit-details-marker { display: none; }
+  .r-read summary::before { content: "+"; display: inline-block; width: 14px; font-weight: 700; color: var(--blue); }
+  .r-read[open] summary::before { content: "2"; }
+  .r-read .r-note:first-of-type { margin-top: 8px; }
+  .r-read + .r-foot { margin-top: 16px; }
+
   .r-warn { font-size: 13px; line-height: 1.45; color: var(--ink); border-left: 2px solid var(--red); padding: 2px 0 2px 10px; margin: 16px 0 0; }
   .r-tab { width: 100%; border-collapse: collapse; font-size: 13px; margin: 8px 0 0; font-variant-numeric: tabular-nums; }
   .r-tab th { text-align: left; font-weight: 600; color: var(--ink-2); font-size: 12px; padding: 0 0 6px; border-bottom: 1px solid var(--ink); }
@@ -43,7 +50,6 @@
     <div><label for="f-anno">Anno dei proventi</label><select id="f-anno"><option value="2025">2025</option><option value="2024">2024</option></select></div>
   </div>
 
-  <p class="r-place" id="place"></p>
   <p class="r-name" id="name"></p>
   <div id="warn"></div>
 
@@ -67,7 +73,11 @@
     </figure>
   </div>
 
-  <p class="r-note">La legge impone di destinare almeno metà dei proventi delle multe ordinarie (voce A) a segnaletica, controlli e altre finalità di sicurezza stradale, e tutti i proventi da autovelox a strade e controlli. Molti comuni calcolano la quota al netto delle multe che prevedono di non riscuotere. Il tema di ogni intervento è assegnato in base alle parole della descrizione, quindi è indicativo; il realizzato è stimato come costo per percentuale di realizzazione dichiarata. I capoluoghi sono i 119 del template Wikipedia, compresi Cesena, Carrara e gli ex capoluoghi sardi.</p>
+
+  <details class="r-read">
+    <summary>Come leggere i dati</summary>
+    <p class="r-note">La legge impone di destinare almeno metà dei proventi delle multe ordinarie (voce A) a segnaletica, controlli e altre finalità di sicurezza stradale, e tutti i proventi da autovelox a strade e controlli. Molti comuni calcolano la quota al netto delle multe che prevedono di non riscuotere. Il tema di ogni intervento è assegnato in base alle parole della descrizione, quindi è indicativo; il realizzato è stimato come costo per percentuale di realizzazione dichiarata. I capoluoghi sono i 119 del template Wikipedia, compresi Cesena, Carrara e gli ex capoluoghi sardi.</p>
+  </details>
 
   <footer class="r-foot">
     <span>Fonte: relazioni dei comuni al ministero dell'Interno (art. 142, comma 12-quater, Codice della strada), proventi 2024 e 2025; Istat, residenti al 1° gennaio 2026</span>
@@ -239,8 +249,7 @@
     function show(phase) {
       cur = cap.find(function (d) { return d.n === selCap.property("value") && d.anno === selAnno.property("value"); });
       all = false; tipV.hide(); tipT.hide();
-      d3.select("#place").text(cur.reg + (cur.pop ? " · " + fmt(cur.pop, 0) + " residenti" : ""));
-      d3.select("#name").text(cur.n + ", proventi " + cur.anno);
+      d3.select("#name").text(cur.n);
       var warn = cur.vuota ? (cur.nota || "Relazione senza dati") + " per il " + cur.anno + "." : (cur.nota ? cur.nota + "." : "");
       var nIt = its.filter(function (d) { return d.anno === cur.anno && d.n === cur.n; }).length;
       if (!cur.vuota && !nIt) warn += (warn ? " " : "") + "Il comune non ha elencato interventi nella relazione " + cur.anno + ".";

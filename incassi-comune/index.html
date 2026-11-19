@@ -20,8 +20,15 @@
   }
   .r-ctrl select:focus { outline: 2px solid var(--blue); outline-offset: 1px; }
   .r-ctrl select:disabled { color: var(--ink-2); }
-  .r-place { font-size: 13px; color: var(--ink-2); margin: 24px 0 0; }
-  .r-name { font: 700 22px/1.15 var(--serif); color: var(--title); margin: 2px 0 0; }
+  .r-name { font: 700 22px/1.15 var(--serif); color: var(--title); margin: 24px 0 0; }
+  .r-read { margin: 28px 0 0; border-top: 1px solid var(--rule); padding-top: 10px; }
+  .r-read summary { font: 600 13px var(--sans); color: var(--ink); cursor: pointer; list-style: none; display: flex; align-items: center; gap: 6px; }
+  .r-read summary::-webkit-details-marker { display: none; }
+  .r-read summary::before { content: "+"; display: inline-block; width: 14px; font-weight: 700; color: var(--blue); }
+  .r-read[open] summary::before { content: "2"; }
+  .r-read .r-note:first-of-type { margin-top: 8px; }
+  .r-read + .r-foot { margin-top: 16px; }
+
   .r-tab { width: 100%; border-collapse: collapse; font-size: 13px; margin: 18px 0 0; font-variant-numeric: tabular-nums; }
   .r-tab th { text-align: right; font-weight: 600; color: var(--ink-2); font-size: 12px; padding: 0 0 6px; border-bottom: 1px solid var(--ink); }
   .r-tab th:first-child, .r-tab td:first-child { text-align: left; }
@@ -49,7 +56,6 @@
   </div>
 
   <div id="scheda">
-    <p class="r-place" id="place"></p>
     <p class="r-name" id="name"></p>
 
     <figure class="r-chart" id="anni">
@@ -62,7 +68,6 @@
       <thead><tr><th>Periodo</th><th>Incassi da multe</th><th>Euro per abitante</th></tr></thead>
       <tbody></tbody>
     </table>
-    <p class="r-note" id="tab-note"></p>
     <div id="warn"></div>
 
     <figure class="r-chart" id="prov">
@@ -72,7 +77,12 @@
   </div>
   <p class="r-empty" id="empty" hidden>Scegli regione, provincia e comune.</p>
 
-  <p class="r-note">Gli importi sono incassi di cassa: comprendono multe di anni precedenti. Da settembre 2026 molti incassi in SIOPE non sono ancora attribuiti alla voce delle multe, per questo il 2026 si ferma ad agosto. Nei comuni turistici o di transito le multe le pagano soprattutto i non residenti. La media provinciale è il totale degli incassi dei comuni della provincia diviso per i loro residenti.</p>
+
+  <details class="r-read">
+    <summary>Come leggere i dati</summary>
+    <p class="r-note" id="tab-note"></p>
+    <p class="r-note">Gli importi sono incassi di cassa: comprendono multe di anni precedenti. Da settembre 2026 molti incassi in SIOPE non sono ancora attribuiti alla voce delle multe, per questo il 2026 si ferma ad agosto. Nei comuni turistici o di transito le multe le pagano soprattutto i non residenti. La media provinciale è il totale degli incassi dei comuni della provincia diviso per i loro residenti.</p>
+  </details>
 
   <footer class="r-foot">
     <span>Fonte: SIOPE (Ragioneria generale dello Stato e Banca d'Italia), dati al 19 novembre 2026; Istat, residenti al 1° gennaio 2026</span>
@@ -277,11 +287,10 @@
       d3.select("#empty").property("hidden", !!c);
       tip.hide(); tip2.hide();
       if (!c) { R.scheduleHeight(); return; }
-      d3.select("#place").text(c.reg + " · provincia di " + c.prov + (c.pop ? " · " + fmt(c.pop, 0) + " residenti" : ""));
       d3.select("#name").text(c.nome);
       if (!c.pop) {
         d3.select("#anni").style("display", "none"); d3.select("#prov").style("display", "none"); d3.select("#tab").style("display", "none");
-        d3.select("#tab-note").text("");
+        d3.select("#tab-note").text("").style("display", "none");
         d3.select("#warn").html('<p class="r-warn">Questo comune è stato soppresso o unito ad altri in una fusione: l’Istat non ne pubblica più i residenti, quindi non si può calcolare il dato per abitante. Incassi: ' + eurT(c.i24) + " nel 2024, " + eurT(c.i25) + " nel 2025.</p>");
         R.scheduleHeight(); return;
       }
@@ -301,7 +310,7 @@
         nota += " Peso delle multe sulla spesa del comune: " + R.pct(c.i25 / c.s25, c.i25 / c.s25 < 0.1 ? 2 : 1) + " nel 2025, " + R.pct(c.i24 / c.s24, c.i24 / c.s24 < 0.1 ? 2 : 1) +
           " nel 2024 (incassi da multe su tutti i pagamenti del comune: spese correnti, investimenti e rimborso prestiti).";
       }
-      d3.select("#tab-note").text(nota);
+      d3.select("#tab-note").text(nota).style("display", null);
       var warn = "";
       if (c.i25 === 0) {
         warn = c.altre > 0
