@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Multe stradali, quanto incassa il tuo comune – Radar QN</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,700&display=swap">
+<link rel="stylesheet" href="../assets/radar.css">
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+<script src="../assets/radar.js"></script>
+<style>
+  .r-ctrl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 24px 0 0; }
+  @media (max-width: 559px) { .r-ctrl { grid-template-columns: 1fr; } }
+  .r-ctrl label { display: block; font-size: 12px; color: var(--ink-2); margin: 0 0 4px; }
+  .r-ctrl select {
+    width: 100%; font: 500 14px var(--sans); color: var(--ink); background: var(--tip-bg);
+    border: 1px solid var(--rule); border-radius: 2px; padding: 7px 8px; appearance: auto;
+  }
+  .r-ctrl select:focus { outline: 2px solid var(--blue); outline-offset: 1px; }
+  .r-ctrl select:disabled { color: var(--ink-2); }
+  .r-place { font-size: 13px; color: var(--ink-2); margin: 24px 0 0; }
+  .r-name { font: 700 22px/1.15 var(--serif); color: var(--title); margin: 2px 0 0; }
+  .r-tab { width: 100%; border-collapse: collapse; font-size: 13px; margin: 18px 0 0; font-variant-numeric: tabular-nums; }
+  .r-tab th { text-align: right; font-weight: 600; color: var(--ink-2); font-size: 12px; padding: 0 0 6px; border-bottom: 1px solid var(--ink); }
+  .r-tab th:first-child, .r-tab td:first-child { text-align: left; }
+  .r-tab td { text-align: right; padding: 7px 0; border-bottom: 1px solid var(--rule); }
+  .r-tab td + td, .r-tab th + th { padding-left: 12px; }
+  .r-tab td + td { white-space: nowrap; }
+  @media (max-width: 519px) { .r-tab { font-size: 12px; } .r-tab td + td, .r-tab th + th { padding-left: 8px; } }
+  .r-tab tr.is-est td { color: var(--ink-2); font-style: italic; }
+  .r-tag { font-size: 11px; font-style: normal; color: var(--ink-2); border: 1px solid var(--rule); border-radius: 9px; padding: 0 6px; margin-left: 4px; white-space: nowrap; }
+  .r-warn { font-size: 13px; line-height: 1.45; color: var(--ink); border-left: 2px solid var(--red); padding: 2px 0 2px 10px; margin: 16px 0 0; }
+  .r-empty { font-size: 14px; color: var(--ink-2); margin: 24px 0 0; }
+</style>
+</head>
+<body>
+<main class="radar">
+  <header>
+    <h1 class="r-title">Multe stradali, quanto incassa il tuo comune</h1>
+    <p class="r-sub">Incassi delle multe per violazioni del Codice della strada pagate dalle famiglie, in euro per abitante. Scegli regione, provincia e comune.</p>
+  </header>
+
+  <div class="r-ctrl">
+    <div><label for="f-reg">Regione</label><select id="f-reg"></select></div>
+    <div><label for="f-prov">Provincia</label><select id="f-prov"></select></div>
+    <div><label for="f-com">Comune</label><select id="f-com"></select></div>
+  </div>
+
+  <div id="scheda">
+    <p class="r-place" id="place"></p>
+    <p class="r-name" id="name"></p>
+
+    <figure class="r-chart" id="anni">
+      <p class="r-chart__head" id="anni-head"></p>
+      <p class="r-chart__sub">Euro per abitante. Il 2026 è una proiezione sull'anno intero</p>
+      <div class="r-key" id="anni-key" style="margin:0 0 4px"></div>
+    </figure>
+
+    <table class="r-tab" id="tab" aria-label="Incassi del comune">
+      <thead><tr><th>Periodo</th><th>Incassi da multe</th><th>Euro per abitante</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <p class="r-note" id="tab-note"></p>
+    <div id="warn"></div>
+
+    <figure class="r-chart" id="prov">
+      <p class="r-chart__head" id="prov-head"></p>
+      <p class="r-chart__sub">Ogni punto è un comune, euro per abitante nel 2025. Scala logaritmica</p>
+    </figure>
+  </div>
+  <p class="r-empty" id="empty" hidden>Scegli regione, provincia e comune.</p>
+
+  <p class="r-note">Gli importi sono incassi di cassa: comprendono multe di anni precedenti. Da settembre 2026 molti incassi in SIOPE non sono ancora attribuiti alla voce delle multe, per questo il 2026 si ferma ad agosto. Nei comuni turistici o di transito le multe le pagano soprattutto i non residenti. La media provinciale è il totale degli incassi dei comuni della provincia diviso per i loro residenti.</p>
+
+  <footer class="r-foot">
+    <span>Fonte: SIOPE (Ragioneria generale dello Stato e Banca d'Italia), dati al 19 novembre 2026; Istat, residenti al 1° gennaio 2026</span>
+    <span>Elaborazione Radar – QN</span>
+  </footer>
+</main>
+
+<script>
+(function () {
+  var R = Radar, fmt = R.fmt;
+  var eur = function (v) { return fmt(v, v >= 100 ? 0 : 2) + " €"; };
+  var eurT = function (v) { return fmt(Math.round(v), 0) + " €"; };
+  var eurM = function (v) { return v >= 1e6 ? fmt(v / 1e6, 1) + " milioni di €" : eurT(v); };
+
+  R.loadCSV("../data/comuni.csv").then(function (rows) {
+    var C = rows.map(function (r) {
+      return {
+        reg: r["Regione"], prov: r["Provincia"], nome: r["Comune"], pop: R.num(r["Residenti"]) || 0,
+        i24: R.num(r["Incassi 2024"]) || 0, i25: R.num(r["Incassi 2025"]) || 0,
+        a25: R.num(r["Incassi gen-ago 2025"]) || 0, a26: R.num(r["Incassi gen-ago 2026"]) || 0,
+        p26: R.num(r["Proiezione 2026"]) || 0, pDaComune: r["Proiezione su dati del comune"] === "sì",
+        altre: R.num(r["Altre multe 2025"]) || 0, s24: R.num(r["Spesa 2024"]) || 0, s25: R.num(r["Spesa 2025"]) || 0
+      };
+    });
+    var pc = function (c, k) { return c.pop ? c[k] / c.pop : 0; };
+
+    // medie provinciali: incassi totali dei comuni con residenti / residenti
+    var byProv = d3.group(C, function (c) { return c.prov; });
+    var mProv = new Map();
+    byProv.forEach(function (list, p) {
+      var w = list.filter(function (c) { return c.pop; });
+      var pop = d3.sum(w, function (c) { return c.pop; });
+      var m = {};
+      ["i24", "i25", "p26"].forEach(function (k) { m[k] = d3.sum(w, function (c) { return c[k]; }) / pop; });
+      mProv.set(p, m);
+    });
+
+    // ---------- menu ----------
+    var selReg = d3.select("#f-reg"), selProv = d3.select("#f-prov"), selCom = d3.select("#f-com");
+    var regioni = Array.from(new Set(C.map(function (c) { return c.reg; }))).sort(d3.ascending);
+    selReg.selectAll("option").data(["Tutte le regioni"].concat(regioni)).join("option")
+      .attr("value", function (d, i) { return i ? d : ""; }).text(function (d) { return d; });
+    function fillProv() {
+      var r = selReg.property("value");
+      var ps = Array.from(new Set(C.filter(function (c) { return !r || c.reg === r; }).map(function (c) { return c.prov; }))).sort(d3.ascending);
+      selProv.selectAll("option").data(["Scegli la provincia"].concat(ps)).join("option")
+        .attr("value", function (d, i) { return i ? d : ""; }).text(function (d) { return d; });
+    }
+    function fillCom() {
+      var p = selProv.property("value");
+      var cs = p ? byProv.get(p).slice().sort(function (a, b) { return d3.ascending(a.nome, b.nome); }) : [];
+      selCom.property("disabled", !p);
+      selCom.selectAll("option").data([{ nome: p ? "Scegli il comune" : "Prima scegli la provincia", vuoto: true }].concat(cs)).join("option")
+        .attr("value", function (d) { return d.vuoto ? "" : C.indexOf(d); }).text(function (d) { return d.nome; });
+    }
+    var cur = null;
+    selReg.on("change", function () { fillProv(); fillCom(); show(null); });
+    selProv.on("change", function () { fillCom(); show(null); });
+    selCom.on("change", function () { var v = selCom.property("value"); show(v === "" ? null : C[+v], "play"); });
+    fillProv(); fillCom();
+
+    // ---------- grafico a barre: comune e media provinciale ----------
+    var host = document.getElementById("anni");
+    var tip = R.tooltip(host), clearBars = function () {};
+    R.dismissOutside(host, function () { tip.hide(); clearBars(); });
+    var lastW = 0, drawBars = function () {};
+
+    function barsChart(W, phase) {
+      var c = cur; if (!c) return;
+      var mp = mProv.get(c.prov);
+      var narrow = R.isNarrow(W);
+      var data = [
+        { k: "2024", c: pc(c, "i24"), p: mp.i24, tot: c.i24 },
+        { k: "2025", c: pc(c, "i25"), p: mp.i25, tot: c.i25 },
+        { k: "2026", c: pc(c, "p26"), p: mp.p26, tot: c.p26, est: true }
+      ];
+      d3.select("#anni-key").html(
+        '<span><i class="sw" style="background:var(--blue)"></i>' + c.nome + '</span>' +
+        '<span><i class="sw" style="background:var(--grey)"></i>Media della provincia</span>' +
+        '<span><i class="sw sw--hatch"></i>2026: proiezione</span>');
+      var m = { top: 26, right: 0, bottom: 26, left: 0 };
+      var H = narrow ? 230 : 260, w = W - m.left - m.right, h = H - m.top - m.bottom;
+      var x0 = d3.scaleBand().domain(data.map(function (d) { return d.k; })).range([0, w]).paddingInner(narrow ? 0.25 : 0.35).paddingOuter(0.1);
+      var x1 = d3.scaleBand().domain(["c", "p"]).range([0, x0.bandwidth()]).paddingInner(0.12);
+      var max = d3.max(data, function (d) { return Math.max(d.c, d.p); }) || 1;
+      var y = d3.scaleLinear().domain([0, max]).range([h, 0]);
+
+      d3.select(host).select("svg").remove();
+      var svg = d3.select(host).insert("svg", ".r-tip").attr("width", W).attr("height", H).attr("role", "img")
+        .attr("aria-label", "Grafico a barre: a " + c.nome + " gli incassi da multe sono " + eur(data[1].c) + " per abitante nel 2025, contro una media provinciale di " +
+          eur(data[1].p) + "; la proiezione per il 2026 è " + eur(data[2].c) + ".");
+      svg.append("title").text("Incassi da multe per abitante: " + c.nome + " e media della provincia di " + c.prov);
+      var defs = svg.append("defs");
+      [["h-c", "var(--blue)"], ["h-p", "var(--grey)"]].forEach(function (p) {
+        var pat = defs.append("pattern").attr("id", p[0]).attr("width", 5).attr("height", 5).attr("patternUnits", "userSpaceOnUse").attr("patternTransform", "rotate(135)");
+        pat.append("rect").attr("width", 5).attr("height", 5).style("fill", "var(--bg)");
+        pat.append("rect").attr("width", 2.2).attr("height", 5).style("fill", p[1]);
+      });
+      var g = svg.append("g").attr("transform", "translate(" + m.left + "," + m.top + ")");
+      g.append("line").attr("class", "baseline").attr("x1", 0).attr("x2", w).attr("y1", h + 0.5).attr("y2", h + 0.5);
+
+      var marks = [];
+      data.forEach(function (d) { marks.push({ d: d, s: "c", v: d.c }); marks.push({ d: d, s: "p", v: d.p }); });
+      var col = function (q) { return q.s === "c" ? "var(--blue)" : "var(--grey)"; };
+      var bars = g.append("g").selectAll("path").data(marks).join("path").attr("class", "mark")
+        .style("fill", function (q) { return q.d.est ? "url(#h-" + q.s + ")" : col(q); })
+        .style("stroke", function (q) { return q.d.est ? col(q) : null; }).style("stroke-width", 1);
+      var bx = function (q) { return x0(q.d.k) + x1(q.s); };
+      R.enter(bars, phase,
+        function (s) { s.attr("d", function (q) { return R.barPathV(bx(q), h, x1.bandwidth(), 0, 2); }); },
+        function (s) {
+          var path = function (q, t) { var yy = y(q.v * t); return R.barPathV(bx(q), yy, x1.bandwidth(), h - yy, 2); };
+          // in fase "static" arriva una selezione (niente transizione): stato finale diretto
+          if (typeof s.attrTween === "function") s.attrTween("d", function (q) { return function (t) { return path(q, t); }; });
+          else s.attr("d", function (q) { return path(q, 1); });
+        });
+      var labs = g.append("g").selectAll("text").data(marks).join("text").attr("class", function (q) { return "val-label mark" + (q.s === "p" ? " val-label--muted" : ""); })
+        .attr("text-anchor", "middle").attr("x", function (q) { return bx(q) + x1.bandwidth() / 2; }).attr("y", function (q) { return y(q.v) - 6; })
+        .style("font-size", narrow ? "11px" : null);
+      labs.each(function (q) { R.countUp(d3.select(this), q.v, eur, phase); });
+      g.append("g").selectAll("text").data(data).join("text").attr("class", "tick-label").attr("text-anchor", "middle")
+        .attr("x", function (d) { return x0(d.k) + x0.bandwidth() / 2; }).attr("y", h + 18)
+        .text(function (d) { return d.est ? d.k + " (proiezione)" : d.k; });
+
+      clearBars = function () { bars.classed("is-dimmed", false); labs.classed("is-dimmed", false); };
+      g.append("g").selectAll("rect").data(data).join("rect").attr("class", "hit")
+        .attr("x", function (d) { return x0(d.k) - x0.step() * x0.paddingInner() / 2; }).attr("width", x0.step())
+        .attr("y", -m.top).attr("height", H)
+        .on("pointerenter pointerdown", function (ev, d) {
+          bars.classed("is-dimmed", function (q) { return q.d !== d; });
+          labs.classed("is-dimmed", function (q) { return q.d !== d; });
+          tip.show(R.tipHTML({
+            title: d.est ? "2026, proiezione sull'anno" : d.k, value: eur(d.c), unit: "per abitante",
+            rows: [["Incassi del comune", eurT(d.tot)], ["Media della provincia", eur(d.p) + " per abitante"]],
+            note: d.est ? "Stima: incassi di gennaio-agosto 2026 rapportati al peso che questi mesi hanno avuto nel 2024 e 2025" : null
+          }), x0(d.k) + x0.bandwidth() / 2 + m.left, y(Math.max(d.c, d.p)) + m.top);
+        })
+        .on("pointerleave", function (ev) { if (ev.pointerType === "mouse") { tip.hide(); clearBars(); } });
+    }
+
+    // ---------- distribuzione dei comuni della provincia ----------
+    var host2 = document.getElementById("prov");
+    var tip2 = R.tooltip(host2), clearDots = function () {};
+    R.dismissOutside(host2, function () { tip2.hide(); clearDots(); });
+
+    function provChart(W, phase) {
+      var c = cur; if (!c) return;
+      var narrow = R.isNarrow(W);
+      var list = byProv.get(c.prov).filter(function (q) { return q.pop; });
+      var avg = mProv.get(c.prov).i25;
+      var vals = list.map(function (q) { return pc(q, "i25"); });
+      var maxV = Math.max(d3.max(vals) || 1, avg, 1);
+      var top = Math.pow(10, Math.ceil(Math.log10(maxV + 1)));
+      var m = { top: 30, right: 10, bottom: 46, left: 10 };
+      var H = 150, w = W - m.left - m.right, h = H - m.top - m.bottom;
+      var x = d3.scaleLog().domain([1, top + 1]).range([0, w]);
+      var X = function (v) { return x(v + 1); };
+      var ticks = [0]; for (var t = 1; t <= top; t *= 10) ticks.push(t);
+
+      d3.select(host2).select("svg").remove();
+      var rank = list.slice().sort(function (a, b) { return pc(b, "i25") - pc(a, "i25"); }).indexOf(c) + 1;
+      d3.select("#prov-head").text(c.nome + " è " + rank + "° su " + list.length + " comuni della provincia di " + c.prov);
+      var svg = d3.select(host2).insert("svg", ".r-tip").attr("width", W).attr("height", H).attr("role", "img")
+        .attr("aria-label", "Distribuzione dei comuni della provincia di " + c.prov + " per incassi da multe per abitante nel 2025: " + c.nome + " è " + rank + "° su " + list.length + ".");
+      svg.append("title").text("Comuni della provincia di " + c.prov + " per incassi da multe per abitante, 2025");
+      var g = svg.append("g").attr("transform", "translate(" + m.left + "," + m.top + ")");
+      g.append("g").attr("class", "grid").selectAll("line").data(ticks).join("line")
+        .attr("x1", X).attr("x2", X).attr("y1", 0).attr("y2", h);
+      g.append("g").selectAll("text").data(ticks).join("text").attr("class", "tick-label").attr("text-anchor", "middle")
+        .attr("x", X).attr("y", h + 16).text(function (d) { return fmt(d, 0) + " €"; });
+
+      var others = list.filter(function (q) { return q !== c; });
+      var dots = g.append("g").selectAll("circle").data(others).join("circle").attr("class", "mark")
+        .attr("cx", function (q) { return X(pc(q, "i25")); })
+        .attr("cy", function (q, i) { return h / 2 + (((i * 37) % 41) - 20) * (h / 48); })
+        .attr("r", 3.5).style("fill", "var(--grey-4)").style("stroke", "var(--bg)").style("stroke-width", 0.75);
+      R.enter(dots, phase, function (s) { s.style("opacity", 0); }, function (s) { s.style("opacity", 1); });
+
+      var an = g.append("g").attr("class", "anno");
+      var xa = X(avg);
+      an.append("line").attr("class", "dash").attr("x1", xa).attr("x2", xa).attr("y1", -6).attr("y2", h);
+      an.append("text").attr("x", xa).attr("y", -12).attr("text-anchor", xa > w - 160 ? "end" : "start").attr("dx", xa > w - 160 ? -4 : 4)
+        .style("fill", "var(--ink-2)").text("Media provinciale " + eur(avg));
+      var xs = X(pc(c, "i25"));
+      g.append("circle").attr("cx", xs).attr("cy", h / 2).attr("r", 6.5).style("fill", "var(--blue)").style("stroke", "var(--bg)").style("stroke-width", 2);
+      var lab = g.append("text").attr("class", "series-label").attr("y", h + 36)
+        .attr("x", xs).attr("text-anchor", xs < 90 ? "start" : xs > w - 90 ? "end" : "middle")
+        .text(c.nome + ": " + eur(pc(c, "i25")));
+
+      clearDots = function () { dots.classed("is-dimmed", false); };
+      dots.style("cursor", "pointer").on("pointerenter pointerdown", function (ev, q) {
+        dots.classed("is-dimmed", function (o) { return o !== q; });
+        tip2.show(R.tipHTML({ title: q.nome, value: eur(pc(q, "i25")), unit: "per abitante, 2025", rows: [["Incassi 2025", eurT(q.i25)]] }),
+          X(pc(q, "i25")) + m.left, +this.getAttribute("cy") + m.top);
+      }).on("pointerleave", function (ev) { if (ev.pointerType === "mouse") { tip2.hide(); clearDots(); } });
+    }
+
+    // ---------- scheda ----------
+    function show(c, phase) {
+      cur = c;
+      d3.select("#scheda").style("display", c ? null : "none");
+      d3.select("#empty").property("hidden", !!c);
+      tip.hide(); tip2.hide();
+      if (!c) { R.scheduleHeight(); return; }
+      d3.select("#place").text(c.reg + " · provincia di " + c.prov + (c.pop ? " · " + fmt(c.pop, 0) + " residenti" : ""));
+      d3.select("#name").text(c.nome);
+      if (!c.pop) {
+        d3.select("#anni").style("display", "none"); d3.select("#prov").style("display", "none"); d3.select("#tab").style("display", "none");
+        d3.select("#tab-note").text("");
+        d3.select("#warn").html('<p class="r-warn">Questo comune è stato soppresso o unito ad altri in una fusione: l’Istat non ne pubblica più i residenti, quindi non si può calcolare il dato per abitante. Incassi: ' + eurT(c.i24) + " nel 2024, " + eurT(c.i25) + " nel 2025.</p>");
+        R.scheduleHeight(); return;
+      }
+      d3.select("#anni").style("display", null); d3.select("#prov").style("display", null); d3.select("#tab").style("display", null);
+      d3.select("#anni-head").text(c.nome + " e la media della provincia di " + c.prov);
+
+      var rowsT = [
+        { p: "Gennaio-agosto 2025", v: c.a25 },
+        { p: "Gennaio-agosto 2026", tag: "incassato", v: c.a26 },
+        { p: "2026, anno intero", tag: "proiezione", v: c.p26, est: true }
+      ];
+      d3.select("#tab tbody").selectAll("tr").data(rowsT).join("tr").attr("class", function (d) { return d.est ? "is-est" : null; })
+        .html(function (d) { return "<td>" + d.p + (d.tag ? ' <span class="r-tag">' + d.tag + "</span>" : "") + "</td><td>" + eurT(d.v) + "</td><td>" + eur(d.v / c.pop) + "</td>"; });
+      var nota = "L'incassato è il dato registrato in SIOPE. La proiezione è una stima: applica agli incassi di gennaio-agosto 2026 il peso che questi mesi hanno avuto sull'anno nel 2024 e nel 2025" +
+        (c.pDaComune ? "." : " nella provincia, perché gli incassi del comune sono troppo bassi o irregolari per stimarlo.");
+      if (c.s25 > 0 && (c.i24 > 0 || c.i25 > 0)) {
+        nota += " Peso delle multe sulla spesa del comune: " + R.pct(c.i25 / c.s25, c.i25 / c.s25 < 0.1 ? 2 : 1) + " nel 2025, " + R.pct(c.i24 / c.s24, c.i24 / c.s24 < 0.1 ? 2 : 1) +
+          " nel 2024 (incassi da multe su tutti i pagamenti del comune: spese correnti, investimenti e rimborso prestiti).";
+      }
+      d3.select("#tab-note").text(nota);
+      var warn = "";
+      if (c.i25 === 0) {
+        warn = c.altre > 0
+          ? "Nel 2025 questo comune non ha incassi sulla voce delle multe stradali, ma ne registra " + eurT(c.altre) + " su altre voci di multe (per esempio “altre multe” o “polizia amministrativa”): è probabile che una parte siano multe stradali registrate altrove."
+          : "Nel 2025 questo comune non ha incassi su nessuna voce di multe. Può non fare multe oppure farle tramite un’unione di comuni, che le registra nel proprio bilancio.";
+      }
+      d3.select("#warn").html(warn ? '<p class="r-warn">' + warn + "</p>" : "");
+      var W = Math.floor(host.getBoundingClientRect().width);
+      barsChart(W, phase || "static");
+      provChart(Math.floor(host2.getBoundingClientRect().width), phase === "play" ? "play" : "static");
+      R.scheduleHeight();
+    }
+
+    // comune di partenza: Milano
+    var start = C.find(function (c) { return c.nome === "Milano"; });
+    selReg.property("value", start.reg); fillProv(); selProv.property("value", start.prov); fillCom(); selCom.property("value", C.indexOf(start));
+    cur = start;
+    show(start, "static");
+    R.responsive(host, function (W, phase) { if (cur && cur.pop) barsChart(W, phase); });
+    R.responsive(host2, function (W, phase) { if (cur && cur.pop) provChart(W, phase); });
+  }).catch(function (e) { R.fail("#anni", e); });
+})();
+</script>
+</body>
+</html>
