@@ -3,7 +3,7 @@
 | Dataviz | URL | Dati |
 |---|---|---|
 | Multe stradali, quanto incassa il tuo comune: menu regione/provincia/comune, euro per abitante 2024, 2025 e proiezione 2026 contro la media provinciale, tabella gennaio-agosto 2025 e 2026, distribuzione dei comuni della provincia | https://cosimofire.github.io/multe-comuni/incassi-comune/ | `data/comuni.csv` |
-| Multe, come le spendono i capoluoghi: menu capoluogo/anno, quota vincolata della voce A e degli autovelox, interventi per tema contro la media dei capoluoghi, elenco degli interventi | https://cosimofire.github.io/multe-comuni/spesa-capoluoghi/ | `data/capoluoghi.csv`, `data/capoluoghi-temi.csv`, `data/capoluoghi-interventi.csv` |
+| Multe, come le spendono i capoluoghi: menu capoluogo/anno, quota vincolata della voce A e destinazione degli autovelox | https://cosimofire.github.io/multe-comuni/spesa-capoluoghi/ | `data/capoluoghi.csv` (in `data/` restano anche temi e interventi, non usati dalla pagina) |
 
 **Fonti**
 - SIOPE, download massivo aggiornato al 19 novembre 2026: voce 3.02.02.01.004 (multe e sanzioni per violazioni del Codice della strada a carico delle famiglie), incassi di cassa; spesa = pagamenti dei titoli 1-4. Da settembre 2026 molti incassi sono ancora "da regolarizzare", per questo il 2026 si ferma ad agosto.
