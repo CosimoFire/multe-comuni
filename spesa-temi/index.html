@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Come i capoluoghi spendono i soldi delle multe, voce per voce della legge – Radar QN</title>
+<title>Come i capoluoghi spendono i soldi delle multe – Radar QN</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,700&display=swap">
@@ -32,14 +32,9 @@
 <body>
 <main class="radar">
   <header>
-    <h1 class="r-title" id="title">Quasi quattro euro su dieci dei fondi vincolati vanno a manutenzione delle strade e altre voci</h1>
-    <p class="r-sub">Interventi finanziati dai capoluoghi di provincia nel 2025 con la parte dei proventi delle multe vincolata alla sicurezza stradale, divisi secondo le voci previste dalla legge e, dentro ogni voce, per tipo di spesa. Milioni di euro</p>
+    <h1 class="r-title" id="title">Come i capoluoghi spendono i soldi delle multe</h1>
+    <p class="r-sub">Interventi finanziati nel 2025, milioni di euro</p>
   </header>
-
-  <div class="r-big" id="big" aria-hidden="true">
-    <span class="r-big__num"><span id="big-num">&nbsp;</span><span class="r-big__unit"> mln €</span></span>
-    <span class="r-big__label" id="big-label"></span>
-  </div>
 
   <figure class="r-chart" id="tm"></figure>
 
@@ -71,7 +66,6 @@
   R.loadCSV("../data/capoluoghi-interventi.csv").then(function (rows) {
     var r25 = rows.filter(function (r) { return r["Anno"] === "2025"; });
     var tot = d3.sum(r25, function (r) { return R.num(r["Costo"]) || 0; });
-    var nCap = new Set(r25.map(function (r) { return r["Capoluogo"]; })).size;
     var gruppi = VOCI.map(function (v) {
       var rr = r25.filter(function (r) { return r["Voce"] === v.k; });
       var temi = Array.from(d3.group(rr, function (r) { return r["Tema"]; }), function (e) {
@@ -81,16 +75,6 @@
       }).filter(function (d) { return d.value > 0; });
       return { v: v, children: temi, tot: d3.sum(temi, function (d) { return d.value; }) };
     });
-    var maxG = gruppi.slice().sort(function (a, b) { return b.tot - a.tot; })[0];
-
-    // titolo e big number calcolati dai dati
-    var q = maxG.tot / tot;
-    var frase = q >= 0.37 && q < 0.4 ? "Quasi quattro euro su dieci" : q >= 0.4 && q < 0.45 ? "Quattro euro su dieci" : R.pct(q, 0);
-    d3.select("#title").text(frase + " dei fondi vincolati vanno a manutenzione delle strade e altre voci");
-    var bigNum = d3.select("#big-num"), f0 = function (v) { return fmt(v, 0); };
-    d3.select("#big-label").text("di interventi finanziati con i fondi vincolati da " + nCap + " capoluoghi nel 2025, divisi per voce di legge");
-    if (R.reduced) bigNum.text(f0(tot / 1e6));
-    else { bigNum.text(f0(0)); R.onFirstView(document.getElementById("big"), function () { R.countUp(bigNum, tot / 1e6, f0, "play"); }); }
 
     var host = document.getElementById("tm"), tip = R.tooltip(host), clear = function () {};
     R.dismissOutside(host, function () { tip.hide(); clear(); });
