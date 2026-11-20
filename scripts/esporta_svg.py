@@ -13,6 +13,9 @@ EDGE = next(p for p in [r"C:\Program Files (x86)\Microsoft\Edge\Application\msed
                         r"C:\Program Files\Microsoft\Edge\Application\msedge.exe"] if os.path.exists(p))
 PAGINE = ["top-comuni", "top-capoluoghi", "spesa-temi", "incassi-comune", "spesa-capoluoghi"]
 os.makedirs(os.path.join(repo, "svg"), exist_ok=True)
+# copia anche nella cartella Download dell'utente
+DL = os.path.join(os.path.expanduser("~"), "Downloads", "multe-comuni-svg")
+os.makedirs(DL, exist_ok=True)
 for p in PAGINE:
     url = f"http://127.0.0.1:8765/multe-comuni/{p}/?svg=1&bg=bianco"
     out = subprocess.run([EDGE, "--headless=new", "--disable-gpu", "--force-prefers-reduced-motion", "--hide-scrollbars",
@@ -25,5 +28,6 @@ for p in PAGINE:
     svg = html.unescape(m.group(1))
     fn = os.path.join(repo, "svg", p + ".svg")
     open(fn, "w", encoding="utf-8").write(svg)
+    open(os.path.join(DL, p + ".svg"), "w", encoding="utf-8").write(svg)
     w = re.search(r'width="(\d+)" height="(\d+)"', svg)
     print(p, "ok", w.group(0) if w else "", len(svg) // 1024, "KB", "var(" in svg and "ATTENZIONE: variabili CSS rimaste" or "")

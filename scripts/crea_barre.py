@@ -58,39 +58,32 @@ MODELLO = r"""<!doctype html>
       return { nome: r["Comune"], prov: r["Provincia"], pop: pop, cap: r["Capoluogo"] === "sì",
         a26: R.num(r["Incassi gen-ago 2026"]) || 0, a25: R.num(r["Incassi gen-ago 2025"]) || 0 };
     }).filter(function (d) { return d.pop > 0; });
-    var media = d3.sum(all, function (d) { return d.a26; }) / d3.sum(all, function (d) { return d.pop; });
     var base = SOLO_CAP ? all.filter(function (d) { return d.cap; }) : all;
     base.forEach(function (d) { d.v = d.a26 / d.pop; d.v25 = d.a25 / d.pop; });
     var top = base.slice().sort(function (a, b) { return b.v - a.v; }).slice(0, 10);
     var first = top[0];
 
-    // titolo dai dati
-    var t = SOLO_CAP
-      ? first.nome + " prima tra i capoluoghi: " + fmt(first.v, 0) + " euro di multe per abitante in otto mesi"
-      : (first.v >= 1000 ? "A " + first.nome + " oltre mille euro di multe per abitante in otto mesi"
-                         : first.nome + " prima per multe per abitante: " + fmt(first.v, 0) + " euro in otto mesi");
-    d3.select("#title").text(t);
+    var t = document.getElementById("title").textContent;
 
     var host = document.getElementById("barre"), tip = R.tooltip(host), clear = function () {};
     R.dismissOutside(host, function () { tip.hide(); clear(); });
 
     R.responsive(host, function (W, phase) {
       var narrow = R.isNarrow(W);
-      var labW = narrow ? 0 : 190, row = narrow ? 44 : 36, bh = narrow ? 16 : 20;
-      var m = { top: 26, right: narrow ? 52 : 70, bottom: 6, left: labW };
+      var labW = narrow ? 0 : (SOLO_CAP ? 110 : 190), row = narrow ? 44 : 36, bh = narrow ? 16 : 20;
+      var m = { top: 6, right: narrow ? 52 : 70, bottom: 6, left: labW };
       var H = m.top + row * top.length + m.bottom, w = W - m.left - m.right;
       var x = d3.scaleLinear().domain([0, first.v]).range([0, w]);
       d3.select(host).select("svg").remove();
       var svg = d3.select(host).insert("svg", ".r-tip").attr("width", W).attr("height", H).attr("role", "img")
-        .attr("aria-label", "Grafico a barre: " + top.map(function (d, i) { return (i + 1) + ". " + d.nome + " " + eur(d.v); }).join("; ") +
-          ". Media italiana " + eur(media) + " per abitante.");
+        .attr("aria-label", "Grafico a barre: " + top.map(function (d, i) { return (i + 1) + ". " + d.nome + " " + eur(d.v); }).join("; ") + ".");
       svg.append("title").text(t);
       var g = svg.append("g").attr("transform", "translate(" + m.left + "," + m.top + ")");
       var yy = function (i) { return narrow ? i * row + 18 : i * row + (row - bh) / 2; };
 
       g.append("g").selectAll("text").data(top).join("text").attr("class", "tick-label")
         .attr("x", narrow ? 0 : -10).attr("text-anchor", narrow ? "start" : "end").attr("y", function (d, i) { return narrow ? i * row + 12 : yy(i) + bh / 2; }).attr("dy", narrow ? 0 : "0.35em")
-        .style("fill", function (d, i) { return i === 0 ? "var(--ink)" : "var(--ink)"; }).style("font-weight", function (d, i) { return i === 0 ? 600 : 500; })
+        .style("fill", "var(--ink)").style("font-weight", 500)
         .each(function (d) {
           var el = d3.select(this);
           el.text(d.nome);
@@ -99,7 +92,7 @@ MODELLO = r"""<!doctype html>
       if (!narrow) g.append("line").attr("class", "baseline").attr("x1", 0.5).attr("x2", 0.5).attr("y1", 0).attr("y2", row * top.length);
 
       var bars = g.append("g").selectAll("path").data(top).join("path").attr("class", "mark")
-        .style("fill", function (d, i) { return i === 0 ? "var(--red)" : "var(--blue)"; });
+        .style("fill", "var(--blue)");
       R.enter(bars, phase,
         function (s) { s.attr("d", function (d, i) { return R.barPathH(1, yy(i), 0, bh, 2); }); },
         function (s) {
@@ -110,12 +103,6 @@ MODELLO = r"""<!doctype html>
       var vals = g.append("g").selectAll("text").data(top).join("text").attr("class", "val-label mark")
         .attr("x", function (d) { return x(d.v) + 7; }).attr("y", function (d, i) { return yy(i) + bh / 2; }).attr("dy", "0.35em");
       vals.each(function (d) { R.countUp(d3.select(this), d.v, eur, phase); });
-
-      // riferimento: media italiana
-      var an = g.append("g").attr("class", "anno"), xm = x(media) + 1;
-      an.append("line").attr("class", "dash").attr("x1", xm).attr("x2", xm).attr("y1", -8).attr("y2", row * top.length);
-      an.append("text").attr("x", xm + 4).attr("y", -12).style("fill", "var(--ink-2)").text("Media italiana " + eur(media));
-      R.enter(an, phase, function (s) { s.style("opacity", 0); }, function (s) { s.style("opacity", 1); }, R.DUR * 0.6);
 
       clear = function () { bars.classed("is-dimmed", false); vals.classed("is-dimmed", false); };
       g.append("g").selectAll("rect").data(top).join("rect").attr("class", "hit")
@@ -137,11 +124,11 @@ MODELLO = r"""<!doctype html>
 """
 
 PAGINE = {
-    "top-comuni": dict(TITOLO_PAGINA="I comuni con più multe per abitante", TITOLO="I comuni con più multe per abitante",
-                       SOTTOTITOLO="Incassi delle multe stradali pagate dalle famiglie, in euro per abitante, gennaio-agosto 2026. I dieci comuni italiani con il valore più alto",
+    "top-comuni": dict(TITOLO_PAGINA="I primi 10 comuni", TITOLO="I primi 10 comuni",
+                       SOTTOTITOLO="Incassi pro capite delle multe stradali nel periodo gennaio-agosto 2026",
                        SOLO_CAP="false", NOTA=""),
-    "top-capoluoghi": dict(TITOLO_PAGINA="I capoluoghi con più multe per abitante", TITOLO="I capoluoghi con più multe per abitante",
-                           SOTTOTITOLO="Incassi delle multe stradali pagate dalle famiglie, in euro per abitante, gennaio-agosto 2026. I dieci capoluoghi di provincia con il valore più alto",
+    "top-capoluoghi": dict(TITOLO_PAGINA="I primi 10 capoluoghi", TITOLO="I primi 10 capoluoghi",
+                           SOTTOTITOLO="Incassi pro capite delle multe stradali nel periodo gennaio-agosto 2026",
                            SOLO_CAP="true", NOTA=""),
 }
 for slug, cfg in PAGINE.items():
