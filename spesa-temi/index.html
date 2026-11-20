@@ -32,8 +32,8 @@
 <body>
 <main class="radar">
   <header>
-    <h1 class="r-title" id="title">Quasi quattro euro su dieci delle multe finiscono nelle «altre finalità»</h1>
-    <p class="r-sub">Interventi finanziati con i proventi delle multe stradali dai capoluoghi di provincia nel 2025, divisi secondo le voci previste dalla legge e, dentro ogni voce, per tipo di spesa. Milioni di euro</p>
+    <h1 class="r-title" id="title">Quasi quattro euro su dieci dei fondi vincolati vanno alle «altre finalità»</h1>
+    <p class="r-sub">Interventi finanziati dai capoluoghi di provincia nel 2025 con la parte dei proventi delle multe vincolata alla sicurezza stradale, divisi secondo le voci previste dalla legge e, dentro ogni voce, per tipo di spesa. Milioni di euro</p>
   </header>
 
   <div class="r-big" id="big" aria-hidden="true">
@@ -45,7 +45,7 @@
 
   <details class="r-read">
     <summary>Come leggere i dati</summary>
-    <p class="r-note">La legge impone di destinare almeno metà dei proventi delle multe ordinarie (art. 208 del Codice della strada) alla sicurezza stradale: almeno un quarto di questa quota alla segnaletica (lettera a), almeno un quarto ai controlli (lettera b), il resto ad altre finalità (lettera c), che comprendono manutenzione delle strade, barriere, interventi per gli utenti deboli, educazione stradale, assistenza e previdenza degli agenti. I proventi degli autovelox (art. 142) vanno per intero a manutenzione e sicurezza delle strade o a controlli e personale.</p>
+    <p class="r-note">La legge impone di destinare almeno metà dei proventi delle multe ordinarie (art. 208 del Codice della strada) alla sicurezza stradale: almeno un quarto di questa quota alla segnaletica (lettera a), almeno un quarto ai controlli (lettera b), il resto ad altre finalità (lettera c), che comprendono manutenzione delle strade, barriere, interventi per gli utenti deboli, educazione stradale, assistenza e previdenza degli agenti. I proventi degli autovelox (art. 142) vanno per intero a manutenzione e sicurezza delle strade o a controlli e personale. «Altre finalità» non è la parte libera: è la terza voce della quota vincolata. L'altra metà dei proventi delle multe ordinarie, che il comune può spendere come vuole, non compare nel grafico perché le relazioni elencano solo gli interventi finanziati con la quota vincolata.</p>
     <p class="r-note">I blocchi sono le voci a cui i capoluoghi attribuiscono ogni intervento nelle relazioni al ministero dell'Interno (quadri 4 e 5), con il costo dichiarato, che può comprendere risorse di anni precedenti. Il tipo di spesa dentro ogni blocco è assegnato in base alle parole della descrizione dell'intervento, quindi è indicativo. "Avanzi, mutui, voci contabili" raccoglie soldi lasciati in avanzo di bilancio, rate di mutui e altre voci che non sono interventi veri e propri.</p>
   </details>
 
@@ -86,9 +86,9 @@
     // titolo e big number calcolati dai dati
     var q = maxG.tot / tot;
     var frase = q >= 0.37 && q < 0.4 ? "Quasi quattro euro su dieci" : q >= 0.4 && q < 0.45 ? "Quattro euro su dieci" : R.pct(q, 0);
-    d3.select("#title").text(frase + " delle multe finiscono nelle «" + maxG.v.corto.toLowerCase() + "»");
+    d3.select("#title").text(frase + " dei fondi vincolati vanno alle «" + maxG.v.corto.toLowerCase() + "»");
     var bigNum = d3.select("#big-num"), f0 = function (v) { return fmt(v, 0); };
-    d3.select("#big-label").text("di interventi finanziati con le multe da " + nCap + " capoluoghi nel 2025, divisi per voce di legge");
+    d3.select("#big-label").text("di interventi finanziati con i fondi vincolati da " + nCap + " capoluoghi nel 2025, divisi per voce di legge");
     if (R.reduced) bigNum.text(f0(tot / 1e6));
     else { bigNum.text(f0(0)); R.onFirstView(document.getElementById("big"), function () { R.countUp(bigNum, tot / 1e6, f0, "play"); }); }
 
@@ -98,7 +98,7 @@
     R.responsive(host, function (W, phase) {
       var narrow = R.isNarrow(W);
       var H = narrow ? Math.round(W * 1.7) : 520;
-      var head = narrow ? 34 : 22;
+      var head = narrow ? 34 : 36;
       var root = d3.hierarchy({ children: gruppi }).sum(function (d) { return d.children ? 0 : d.value; })
         .sort(function (a, b) { return b.value - a.value; });
       // paddingOuter va impostato prima di paddingTop, altrimenti lo sovrascrive
@@ -117,16 +117,16 @@
       groups.each(function (d) {
         var g = d3.select(this), w = d.x1 - d.x0;
         var t = g.append("text").attr("class", "tm-gh").attr("x", d.x0 + 2).attr("y", d.y0 + 15);
-        var nome = d.data.v.lungo;
-        t.append("tspan").text(nome);
         var dati = mln(d.value) + " mln · " + R.pct(d.value / tot, 0);
-        if (narrow || w < 230) t.append("tspan").attr("class", "s").attr("x", d.x0 + 2).attr("dy", 15).text(dati);
-        else t.append("tspan").attr("class", "s").text("  " + dati);
-        // se non entra, provo la voce media e poi quella corta
-        if (t.node().getBBox().width > w - 2) { t.select("tspan").text(d.data.v.medio); }
-        if (t.node().getBBox().width > w - 2) { t.select("tspan").text(d.data.v.corto); }
-        if (t.node().getBBox().width > w - 2) { t.selectAll("tspan.s").remove(); }
-        if (t.node().getBBox().width > w - 2) t.remove();   // blocco troppo stretto: la voce resta nel tooltip
+        var due = narrow || w < 330;   // blocco stretto: voce sulla prima riga, dati sulla seconda
+        var nome = t.append("tspan").text(d.data.v.lungo);
+        var sub = due ? t.append("tspan").attr("class", "s").attr("x", d.x0 + 2).attr("dy", 15).text(dati)
+                      : t.append("tspan").attr("class", "s").text("  " + dati);
+        var largo = function () { return Math.max(nome.node().getComputedTextLength(), due ? sub.node().getComputedTextLength() : 0) +
+          (due ? 0 : sub.node().getComputedTextLength()); };
+        if (largo() > w - 2) nome.text(d.data.v.medio);
+        if (largo() > w - 2) nome.text(d.data.v.corto);
+        if (largo() > w - 2) t.remove();   // blocco troppo stretto: voce e dati restano nel tooltip
       });
 
       var leaves = root.leaves();
