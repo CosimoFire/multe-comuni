@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Come i capoluoghi spendono i soldi delle multe – Radar QN</title>
+<title>Come i capoluoghi spendono i soldi delle multe, voce per voce della legge – Radar QN</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,700&display=swap">
@@ -11,13 +11,15 @@
 <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
 <script src="../assets/radar.js"></script>
 <style>
-  /* colore del testo nelle celle: il più leggibile su ciascun riempimento, nei due temi */
-  :root { --tm-on-s: #ffffff; --tm-on-m: #ffffff; --tm-on-o: #1a1a1a; --tm-on-c: #1a1a1a; }
-  :root[data-theme="dark"] { --tm-on-s: #121212; --tm-on-m: #ffffff; --tm-on-o: #121212; --tm-on-c: #f2f2f2; }
-  .tm-leaf { stroke: var(--bg); stroke-width: 3px; }
-  .tm-num { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; pointer-events: none; }
-  .tm-pct { font-size: 13px; font-weight: 600; pointer-events: none; }
-  .tm-lab { font-size: 13px; font-weight: 400; pointer-events: none; }
+  /* testo nelle celle: il più leggibile su ciascuna sfumatura, nei due temi (in scuro le sfumature si rovesciano) */
+  :root { --on-1: #ffffff; --on-2: #ffffff; --on-3: #ffffff; --on-4: #1a1a1a; --on-5: #1a1a1a; }
+  :root[data-theme="dark"] { --on-1: #121212; --on-2: #121212; --on-3: #ffffff; --on-4: #ffffff; --on-5: #ffffff; }
+  .tm-leaf { stroke: var(--bg); stroke-width: 1px; }
+  .tm-group { fill: none; stroke: var(--bg); stroke-width: 4px; pointer-events: none; }
+  .tm-gh { font-size: 13px; font-weight: 700; fill: var(--ink); pointer-events: none; }
+  .tm-gh .s { font-weight: 400; fill: var(--ink-2); }
+  .tm-num { font-size: 15px; font-weight: 700; pointer-events: none; }
+  .tm-lab { font-size: 12px; pointer-events: none; }
   .r-read { margin: 28px 0 0; border-top: 1px solid var(--rule); padding-top: 10px; }
   .r-read summary { font: 600 13px var(--sans); color: var(--ink); cursor: pointer; list-style: none; display: flex; align-items: center; gap: 6px; }
   .r-read summary::-webkit-details-marker { display: none; }
@@ -30,8 +32,8 @@
 <body>
 <main class="radar">
   <header>
-    <h1 class="r-title" id="title">Alle strade un terzo dei soldi delle multe, alla mobilità sostenibile il 5%</h1>
-    <p class="r-sub">Interventi finanziati con i proventi delle multe stradali dai capoluoghi di provincia nel 2025, per voce di spesa. Milioni di euro</p>
+    <h1 class="r-title" id="title">Quasi quattro euro su dieci delle multe finiscono nelle «altre finalità»</h1>
+    <p class="r-sub">Interventi finanziati con i proventi delle multe stradali dai capoluoghi di provincia nel 2025, divisi secondo le voci previste dalla legge e, dentro ogni voce, per tipo di spesa. Milioni di euro</p>
   </header>
 
   <div class="r-big" id="big" aria-hidden="true">
@@ -43,7 +45,8 @@
 
   <details class="r-read">
     <summary>Come leggere i dati</summary>
-    <p class="r-note">Gli interventi sono quelli che i capoluoghi elencano nelle relazioni al ministero dell'Interno sull'uso dei proventi delle multe (quadri 4 e 5), con il costo e la percentuale di realizzazione dichiarati. Il costo può comprendere risorse di anni precedenti; il realizzato è stimato come costo per percentuale di realizzazione. La voce di spesa di ogni intervento è assegnata in base alle parole della descrizione, quindi è indicativa. "Avanzi, mutui, voci contabili" raccoglie soldi lasciati in avanzo di bilancio, rate di mutui e altre voci che non sono interventi veri e propri.</p>
+    <p class="r-note">La legge impone di destinare almeno metà dei proventi delle multe ordinarie (art. 208 del Codice della strada) alla sicurezza stradale: almeno un quarto di questa quota alla segnaletica (lettera a), almeno un quarto ai controlli (lettera b), il resto ad altre finalità (lettera c), che comprendono manutenzione delle strade, barriere, interventi per gli utenti deboli, educazione stradale, assistenza e previdenza degli agenti. I proventi degli autovelox (art. 142) vanno per intero a manutenzione e sicurezza delle strade o a controlli e personale.</p>
+    <p class="r-note">I blocchi sono le voci a cui i capoluoghi attribuiscono ogni intervento nelle relazioni al ministero dell'Interno (quadri 4 e 5), con il costo dichiarato, che può comprendere risorse di anni precedenti. Il tipo di spesa dentro ogni blocco è assegnato in base alle parole della descrizione dell'intervento, quindi è indicativo. "Avanzi, mutui, voci contabili" raccoglie soldi lasciati in avanzo di bilancio, rate di mutui e altre voci che non sono interventi veri e propri.</p>
   </details>
 
   <footer class="r-foot">
@@ -56,86 +59,110 @@
 (function () {
   var R = Radar, fmt = R.fmt;
   var mln = function (v) { return fmt(v / 1e6, 1); };
-  // colore per voce: le strade sono il soggetto (blu), la mobilità sostenibile il dato da notare (rosso),
-  // le altre spese in grigio, le voci contabili e il non specificato nel grigio più tenue
-  var GRUPPO = { "Manutenzione strade": "s", "Mobilità, scuole, utenti deboli": "m",
-    "Avanzi, mutui, voci contabili": "c", "Non specificato": "c" };
-  var FILL = { s: "var(--blue-2)", m: "var(--red)", o: "var(--grey-3)", c: "var(--grey-5)" };
-  var gruppo = function (t) { return GRUPPO[t] || "o"; };
+  // le cinque voci di legge, dalla più in evidenza (blu scuro) alla più tenue
+  var VOCI = [
+    { k: "208-4-c", corto: "Altre finalità", medio: "Lett. c · Altre finalità", lungo: "Art. 208, lettera c · Altre finalità", s: 1 },
+    { k: "208-4-b", corto: "Controlli", medio: "Lett. b · Controlli", lungo: "Art. 208, lettera b · Controlli", s: 2 },
+    { k: "208-4-a", corto: "Segnaletica", medio: "Lett. a · Segnaletica", lungo: "Art. 208, lettera a · Segnaletica", s: 3 },
+    { k: "142-12ter-1", corto: "Autovelox: strade", medio: "Autovelox · Strade e sicurezza", lungo: "Autovelox · Strade e sicurezza", s: 4 },
+    { k: "142-12ter-2", corto: "Autovelox: controlli", medio: "Autovelox · Controlli", lungo: "Autovelox · Controlli e personale", s: 5 }
+  ];
 
-  R.loadCSV("../data/capoluoghi-temi.csv").then(function (rows) {
+  R.loadCSV("../data/capoluoghi-interventi.csv").then(function (rows) {
     var r25 = rows.filter(function (r) { return r["Anno"] === "2025"; });
-    var temi = Array.from(d3.group(r25, function (r) { return r["Tema"]; }), function (e) {
-      var prog = d3.sum(e[1], function (r) { return R.num(r["Programmato"]) || 0; });
-      var real = d3.sum(e[1], function (r) { return R.num(r["Realizzato"]) || 0; });
-      var n = e[1].filter(function (r) { return (R.num(r["Programmato"]) || 0) > 0; }).length;
-      return { t: e[0], value: prog, real: real, n: n, g: gruppo(e[0]) };
-    }).filter(function (d) { return d.value > 0; });
-    var tot = d3.sum(temi, function (d) { return d.value; }), realTot = d3.sum(temi, function (d) { return d.real; });
-    var nCap = new Set(r25.filter(function (r) { return (R.num(r["Programmato"]) || 0) > 0; }).map(function (r) { return r["Capoluogo"]; })).size;
-    var strade = temi.find(function (d) { return d.g === "s"; }), mob = temi.find(function (d) { return d.g === "m"; });
+    var tot = d3.sum(r25, function (r) { return R.num(r["Costo"]) || 0; });
+    var nCap = new Set(r25.map(function (r) { return r["Capoluogo"]; })).size;
+    var gruppi = VOCI.map(function (v) {
+      var rr = r25.filter(function (r) { return r["Voce"] === v.k; });
+      var temi = Array.from(d3.group(rr, function (r) { return r["Tema"]; }), function (e) {
+        var c = d3.sum(e[1], function (r) { return R.num(r["Costo"]) || 0; });
+        var real = d3.sum(e[1], function (r) { return (R.num(r["Costo"]) || 0) * Math.min(R.num(r["Realizzazione %"]) || 0, 100) / 100; });
+        return { t: e[0], value: c, real: real, n: new Set(e[1].map(function (r) { return r["Capoluogo"]; })).size, v: v };
+      }).filter(function (d) { return d.value > 0; });
+      return { v: v, children: temi, tot: d3.sum(temi, function (d) { return d.value; }) };
+    });
+    var maxG = gruppi.slice().sort(function (a, b) { return b.tot - a.tot; })[0];
 
-    // titolo e big number dai dati
-    d3.select("#title").text("Alle strade " + (strade.value / tot >= 0.28 && strade.value / tot <= 0.36 ? "un terzo" : R.pct(strade.value / tot, 0)) +
-      " dei soldi delle multe, alla mobilità sostenibile il " + R.pct(mob.value / tot, 0));
-    var bigNum = d3.select("#big-num"), f1 = function (v) { return fmt(v, 0); };
-    d3.select("#big-label").text("di interventi dichiarati da " + nCap + " capoluoghi; ne risultano realizzati " + fmt(realTot / 1e6, 0) + " milioni, il " + R.pct(realTot / tot, 0));
-    if (R.reduced) bigNum.text(f1(tot / 1e6));
-    else { bigNum.text(f1(0)); R.onFirstView(document.getElementById("big"), function () { R.countUp(bigNum, tot / 1e6, f1, "play"); }); }
+    // titolo e big number calcolati dai dati
+    var q = maxG.tot / tot;
+    var frase = q >= 0.37 && q < 0.4 ? "Quasi quattro euro su dieci" : q >= 0.4 && q < 0.45 ? "Quattro euro su dieci" : R.pct(q, 0);
+    d3.select("#title").text(frase + " delle multe finiscono nelle «" + maxG.v.corto.toLowerCase() + "»");
+    var bigNum = d3.select("#big-num"), f0 = function (v) { return fmt(v, 0); };
+    d3.select("#big-label").text("di interventi finanziati con le multe da " + nCap + " capoluoghi nel 2025, divisi per voce di legge");
+    if (R.reduced) bigNum.text(f0(tot / 1e6));
+    else { bigNum.text(f0(0)); R.onFirstView(document.getElementById("big"), function () { R.countUp(bigNum, tot / 1e6, f0, "play"); }); }
 
     var host = document.getElementById("tm"), tip = R.tooltip(host), clear = function () {};
     R.dismissOutside(host, function () { tip.hide(); clear(); });
 
     R.responsive(host, function (W, phase) {
       var narrow = R.isNarrow(W);
-      var H = narrow ? Math.round(W * 1.45) : 460;
-      var root = d3.hierarchy({ children: temi }).sum(function (d) { return d.value || 0; })
-        .sort(function (x, y) { return y.value - x.value; });
-      d3.treemap().size([W, H]).tile(d3.treemapSquarify.ratio(1)).round(true)(root);
+      var H = narrow ? Math.round(W * 1.7) : 520;
+      var head = narrow ? 34 : 22;
+      var root = d3.hierarchy({ children: gruppi }).sum(function (d) { return d.children ? 0 : d.value; })
+        .sort(function (a, b) { return b.value - a.value; });
+      // paddingOuter va impostato prima di paddingTop, altrimenti lo sovrascrive
+      d3.treemap().size([W, H]).tile(d3.treemapSquarify.ratio(1))
+        .paddingOuter(function (d) { return d.depth === 0 ? 0 : 2; }).paddingTop(function (d) { return d.depth === 1 ? head : 0; })
+        .paddingInner(function (d) { return d.depth === 0 ? 6 : 1; }).round(true)(root);
 
       d3.select(host).select("svg").remove();
       var svg = d3.select(host).insert("svg", ".r-tip").attr("width", W).attr("height", H).attr("role", "img")
         .attr("aria-label", "Treemap: nel 2025 i capoluoghi hanno dichiarato " + mln(tot) + " milioni di interventi finanziati con le multe. " +
-          temi.slice().sort(function (x, y) { return y.value - x.value; }).map(function (d) { return d.t + " " + R.pct(d.value / tot, 1); }).join(", ") + ".");
-      svg.append("title").text("Interventi finanziati con le multe dai capoluoghi nel 2025, per voce di spesa");
+          gruppi.map(function (g) { return g.v.lungo + " " + R.pct(g.tot / tot, 0); }).join("; ") + ".");
+      svg.append("title").text("Interventi finanziati con le multe dai capoluoghi nel 2025, per voce di legge e tipo di spesa");
+
+      // intestazioni dei blocchi (voce di legge)
+      var groups = svg.append("g").selectAll("g").data(root.children).join("g").attr("class", "mark");
+      groups.each(function (d) {
+        var g = d3.select(this), w = d.x1 - d.x0;
+        var t = g.append("text").attr("class", "tm-gh").attr("x", d.x0 + 2).attr("y", d.y0 + 15);
+        var nome = d.data.v.lungo;
+        t.append("tspan").text(nome);
+        var dati = mln(d.value) + " mln · " + R.pct(d.value / tot, 0);
+        if (narrow || w < 230) t.append("tspan").attr("class", "s").attr("x", d.x0 + 2).attr("dy", 15).text(dati);
+        else t.append("tspan").attr("class", "s").text("  " + dati);
+        // se non entra, provo la voce media e poi quella corta
+        if (t.node().getBBox().width > w - 2) { t.select("tspan").text(d.data.v.medio); }
+        if (t.node().getBBox().width > w - 2) { t.select("tspan").text(d.data.v.corto); }
+        if (t.node().getBBox().width > w - 2) { t.selectAll("tspan.s").remove(); }
+        if (t.node().getBBox().width > w - 2) t.remove();   // blocco troppo stretto: la voce resta nel tooltip
+      });
 
       var leaves = root.leaves();
       var cells = svg.append("g").selectAll("g").data(leaves).join("g").attr("class", "mark")
         .attr("transform", function (d) { return "translate(" + d.x0 + "," + d.y0 + ")"; });
       cells.append("rect").attr("class", "tm-leaf")
         .attr("width", function (d) { return Math.max(0, d.x1 - d.x0); }).attr("height", function (d) { return Math.max(0, d.y1 - d.y0); })
-        .attr("rx", 2).style("fill", function (d) { return FILL[d.data.g]; });
-
-      // etichette: importo, quota, voce a capo; si riducono o spariscono se la cella è piccola (restano nel tooltip)
-      cells.each(function (d, i) {
-        var w = d.x1 - d.x0, h = d.y1 - d.y0, g = d3.select(this), col = "var(--tm-on-" + d.data.g + ")";
-        if (w < 54 || h < 34) return;
-        var big = w >= 150 && h >= 96, pad = big ? 10 : 7;
-        var num = g.append("text").attr("class", "tm-num").attr("x", pad).attr("y", pad + (big ? 24 : 16)).style("fill", col)
-          .style("font-size", big ? null : "16px");
-        R.countUp(num, d.value / 1e6, function (v) { return fmt(v, 1); }, phase, i * 60);
-        if (h < 52) return;
-        g.append("text").attr("class", "tm-pct").attr("x", pad).attr("y", pad + (big ? 42 : 32)).style("fill", col)
-          .style("font-size", big ? null : "12px").text(R.pct(d.value / tot, 1));
-        if (h < 70) return;
-        var lab = g.append("text").attr("class", "tm-lab").attr("x", pad).attr("y", pad + (big ? 60 : 48)).style("fill", col)
-          .style("font-size", big ? null : "12px").text(d.data.t);
-        R.wrap(lab, w - 2 * pad - 6, 1.2);
-        var bb = lab.node().getBBox(); if (bb.y + bb.height > h - 4 || bb.x + bb.width > w - 3) lab.remove();
+        .style("fill", function (d) { return "var(--blue-" + d.data.v.s + ")"; });
+      cells.each(function (d) {
+        var w = d.x1 - d.x0, h = d.y1 - d.y0, g = d3.select(this), col = "var(--on-" + d.data.v.s + ")";
+        if (w < 46 || h < 22) return;
+        g.append("text").attr("class", "tm-num").attr("x", 6).attr("y", 18).style("fill", col).text(mln(d.value));
+        if (h < 40) return;
+        var lab = g.append("text").attr("class", "tm-lab").attr("x", 6).attr("y", 34).style("fill", col).text(d.data.t);
+        R.wrap(lab, w - 12, 1.15);
+        var bb = lab.node().getBBox();
+        if (bb.y + bb.height > h - 3 || bb.x + bb.width > w - 3) lab.remove();
       });
+      svg.append("g").selectAll("rect").data(root.children).join("rect").attr("class", "tm-group")
+        .attr("x", function (d) { return d.x0; }).attr("y", function (d) { return d.y0 + head; })
+        .attr("width", function (d) { return d.x1 - d.x0; }).attr("height", function (d) { return Math.max(0, d.y1 - d.y0 - head); });
 
       R.enter(cells, phase,
         function (s) { s.style("opacity", 0); },
-        function (s) { (s.delay ? s.delay(function (d, i) { return i * 60; }) : s).style("opacity", 1); });
+        function (s) { (s.delay ? s.delay(function (d) { return (d.data.v.s - 1) * 120; }) : s).style("opacity", 1); });
 
       clear = function () { cells.classed("is-dimmed", false); };
       cells.style("cursor", "pointer")
         .on("pointerenter pointerdown", function (ev, d) {
-          cells.classed("is-dimmed", function (q) { return q !== d; });
-          var p = d3.pointer(ev, host);
+          cells.classed("is-dimmed", function (q) { return q.data.v !== d.data.v; });
+          var p = d3.pointer(ev, host), gtot = d.parent.value;
           tip.show(R.tipHTML({
-            title: d.data.t, value: mln(d.value), unit: "mln € (" + R.pct(d.value / tot, 1) + ")",
-            rows: [["Realizzato", R.pct(d.data.real / d.value, 0)], ["Capoluoghi con spese per questa voce", fmt(d.data.n, 0)]]
+            title: d.data.t, value: mln(d.value), unit: "mln €",
+            rows: [[d.data.v.corto, R.pct(d.value / gtot, 0) + " della voce"], ["Sul totale", R.pct(d.value / tot, 1)],
+              ["Realizzato", R.pct(d.data.real / d.value, 0)], ["Capoluoghi", fmt(d.data.n, 0)]],
+            note: d.data.v.lungo
           }), p[0], p[1]);
         })
         .on("pointerleave", function (ev) { if (ev.pointerType === "mouse") { tip.hide(); clear(); } });
