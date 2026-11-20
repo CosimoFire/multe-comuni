@@ -26,12 +26,16 @@ def scrivi(nome, head, rows):
 
 
 prov = D["province"]
+# capoluoghi (stessi 119 della dataviz dei capoluoghi), con i nomi usati da SIOPE
+ALIAS = {"Reggio Emilia": "Reggio nell'Emilia", "Reggio Calabria": "Reggio di Calabria"}
+CAP = {(ALIAS.get(c["n"], c["n"]).lower(), K["regioni"][c["r"]].lower()) for c in K["capoluoghi"]}
+iscap = lambda c: "sì" if (c[0].lower(), D["regioni"][prov[c[1]][0]].lower()) in CAP else "no"
 scrivi("comuni.csv",
        ["Regione", "Provincia", "Comune", "Residenti", "Incassi 2024", "Incassi 2025",
         "Incassi gen-ago 2025", "Incassi gen-ago 2026", "Proiezione 2026", "Proiezione su dati del comune",
-        "Altre multe 2025", "Spesa 2024", "Spesa 2025"],
+        "Altre multe 2025", "Spesa 2024", "Spesa 2025", "Capoluogo"],
        [[D["regioni"][prov[c[1]][0]], prov[c[1]][1], c[0], c[2], c[3], c[4], c[8], c[5], c[6],
-         "sì" if c[7] else "no", c[9], c[10], c[11]] for c in D["comuni"]])
+         "sì" if c[7] else "no", c[9], c[10], c[11], iscap(c)] for c in D["comuni"]])
 
 TEMI = K["temi"]
 cap, temi, its = [], [], []

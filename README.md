@@ -4,7 +4,9 @@
 |---|---|---|
 | Multe stradali, quanto incassa il tuo comune: menu regione/provincia/comune, euro per abitante 2024, 2025 e proiezione 2026 contro la media provinciale, tabella gennaio-agosto 2025 e 2026, distribuzione dei comuni della provincia | https://cosimofire.github.io/multe-comuni/incassi-comune/ | `data/comuni.csv` |
 | Multe, quanto vincolano i capoluoghi alla sicurezza stradale: menu capoluogo/anno, quota vincolata della voce A e destinazione degli autovelox | https://cosimofire.github.io/multe-comuni/spesa-capoluoghi/ | `data/capoluoghi.csv` (in `data/` restano anche temi e interventi, non usati dalla pagina) |
-| Treemap "Quasi quattro euro su dieci dei fondi vincolati vanno alle «altre finalità»": interventi 2025 dei capoluoghi divisi per voce di legge (art. 208 lettere a, b, c; autovelox strade e controlli) e, dentro ogni voce, per tipo di spesa | https://cosimofire.github.io/multe-comuni/spesa-temi/ | `data/capoluoghi-interventi.csv` |
+| Treemap "Quasi quattro euro su dieci dei fondi vincolati vanno a manutenzione delle strade e altre voci": interventi 2025 dei capoluoghi divisi per voce di legge (segnaletica, controlli, manutenzione strade e altre voci, autovelox) e, dentro ogni voce, per tipo di spesa | https://cosimofire.github.io/multe-comuni/spesa-temi/ | `data/capoluoghi-interventi.csv` |
+| Barre: i dieci comuni con più incassi da multe per abitante, gennaio-agosto 2026 | https://cosimofire.github.io/multe-comuni/top-comuni/ | `data/comuni.csv` |
+| Barre: i dieci capoluoghi con più incassi da multe per abitante, gennaio-agosto 2026 | https://cosimofire.github.io/multe-comuni/top-capoluoghi/ | `data/comuni.csv` (colonna Capoluogo) |
 
 **Fonti**
 - SIOPE, download massivo aggiornato al 19 novembre 2026: voce 3.02.02.01.004 (multe e sanzioni per violazioni del Codice della strada a carico delle famiglie), incassi di cassa; spesa = pagamenti dei titoli 1-4. Da settembre 2026 molti incassi sono ancora "da regolarizzare", per questo il 2026 si ferma ad agosto.
@@ -22,3 +24,7 @@ Come nelle altre dataviz Radar: la pagina riconosce i quattro sfondi QN. Antepri
 ## Snippet per il CMS
 
 Sono nella pagina indice (https://cosimofire.github.io/multe-comuni/), con il pulsante Copia.
+
+## Esportazione in SVG
+
+Aggiungendo `?svg=1` all'indirizzo di una dataviz compare in basso a destra il pulsante "Scarica SVG": un file unico con titolo, grafico, note e piede, colori già risolti (si apre anche in Illustrator). I file esportati sono in `svg/`.
