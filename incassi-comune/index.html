@@ -324,11 +324,11 @@
       R.scheduleHeight();
     }
 
-    // comune di partenza: Milano
-    var start = C.find(function (c) { return c.nome === "Milano"; });
-    selReg.property("value", start.reg); fillProv(); selProv.property("value", start.prov); fillCom(); selCom.property("value", C.indexOf(start));
-    cur = start;
-    show(start, "static");
+    // all'inizio nessun comune scelto; ?c=Nome nell'URL ne apre uno (serve per l'esportazione in SVG)
+    var qc = new URLSearchParams(location.search).get("c");
+    var start = qc ? C.find(function (c) { return c.nome === qc; }) : null;
+    if (start) { selReg.property("value", start.reg); fillProv(); selProv.property("value", start.prov); fillCom(); selCom.property("value", C.indexOf(start)); }
+    show(start || null, "static");
     R.responsive(host, function (W, phase) { if (cur && cur.pop) barsChart(W, phase); });
     R.responsive(host2, function (W, phase) { if (cur && cur.pop) provChart(W, phase); });
   }).catch(function (e) { R.fail("#anni", e); });

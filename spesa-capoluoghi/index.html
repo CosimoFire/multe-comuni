@@ -31,6 +31,7 @@
   .r-read + .r-foot { margin-top: 16px; }
 
   .r-warn { font-size: 13px; line-height: 1.45; color: var(--ink); border-left: 2px solid var(--red); padding: 2px 0 2px 10px; margin: 16px 0 0; }
+  .r-empty { font-size: 14px; color: var(--ink-2); margin: 24px 0 0; }
 </style>
 </head>
 <body>
@@ -54,6 +55,7 @@
       <p class="r-chart__sub" id="vinc-sub"></p>
     </figure>
   </div>
+  <p class="r-empty" id="empty" hidden>Scegli il capoluogo.</p>
 
 
   <details class="r-read">
@@ -82,8 +84,10 @@
     });
     var nomi = Array.from(new Set(cap.map(function (d) { return d.n; }))).sort(function (a, b) { return a.localeCompare(b, "it"); });
     var selCap = d3.select("#f-cap"), selAnno = d3.select("#f-anno");
-    selCap.selectAll("option").data(nomi).join("option").attr("value", function (d) { return d; }).text(function (d) { return d; });
-    selCap.property("value", "Milano");
+    selCap.selectAll("option").data([""].concat(nomi)).join("option").attr("value", function (d) { return d; }).text(function (d) { return d || "Scegli il capoluogo"; });
+    // all'inizio nessun capoluogo scelto; ?c=Nome nell'URL ne apre uno (serve per l'esportazione in SVG)
+    var qc = new URLSearchParams(location.search).get("c");
+    selCap.property("value", qc && nomi.indexOf(qc) >= 0 ? qc : "");
     var cur = null;
     selCap.on("change", function () { show("play"); });
     selAnno.on("change", function () { show("play"); });
@@ -143,8 +147,13 @@
     }
 
     function show(phase) {
-      cur = cap.find(function (d) { return d.n === selCap.property("value") && d.anno === selAnno.property("value"); });
+      cur = cap.find(function (d) { return d.n === selCap.property("value") && d.anno === selAnno.property("value"); }) || null;
       tipV.hide();
+      d3.select("#empty").property("hidden", !!cur);
+      if (!cur) {
+        d3.select("#name").text(""); d3.select("#warn").html(""); d3.select("#corpo").style("display", "none");
+        R.scheduleHeight(); return;
+      }
       d3.select("#name").text(cur.n);
       var warn = cur.vuota ? (cur.nota || "Relazione senza dati") + " per il " + cur.anno + "." : (cur.nota ? cur.nota + "." : "");
       d3.select("#warn").html(warn ? '<p class="r-warn">' + warn + "</p>" : "");
